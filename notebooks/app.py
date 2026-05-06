@@ -10,14 +10,10 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# ---------------------------
-# 1. Page Config
-# ---------------------------
+# Page Config
 st.set_page_config(page_title="NYPD Crime ML Dashboard", layout="wide")
 
-# ---------------------------
-# 2. Load Data
-# ---------------------------
+# Load Data
 @st.cache_data
 def get_data():
     df = pd.read_csv("nypd_clean.csv").sample(10000, random_state=42)
@@ -35,18 +31,16 @@ df = get_data()
 le_boro = LabelEncoder()
 df['boro_code'] = le_boro.fit_transform(df['boro_nm'])
 
-# ---------------------------
+
 # 3. Tabs
-# ---------------------------
 tab1, tab2, tab3 = st.tabs([
     "📍 Hotspot Clustering",
     "🔮 Crime Prediction",
     "⚠️ Anomaly Detection"
 ])
 
-# =========================================================
-# 🔹 TAB 1: HOTSPOT MAP (DBSCAN)
-# =========================================================
+# Tab 1: Hotspot Map using DBScan
+
 with tab1:
     st.title("NYPD Crime Hotspot Clustering (DBSCAN)")
 
@@ -81,13 +75,11 @@ with tab1:
 
         st.subheader("Top Offenses")
         st.bar_chart(filtered_df['ofns_desc'].value_counts().head(10))
-        
+
 with tab2:
     st.title("Crime Category Prediction (ML)")
 
-    # ---------------------------
-    # 1. Create Target Variable FIRST
-    # ---------------------------
+    # Create Target Variable
     def categorize(x):
         if "ASSAULT" in x or "ROBBERY" in x:
             return "Violent"
@@ -98,32 +90,24 @@ with tab2:
 
     df['crime_category'] = df['ofns_desc'].apply(categorize)
 
-    # ---------------------------
-    # 2. Features + Labels
-    # ---------------------------
+    # Features + Labels
     X = df[['hour', 'boro_code']]
     y = df['crime_category']
 
-    # ---------------------------
-    # 3. Train/Test Split
-    # ---------------------------
+    # Train/Test Split
     from sklearn.model_selection import train_test_split
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    # ---------------------------
-    # 4. Train Model
-    # ---------------------------
+    # Train Model
     model = RandomForestClassifier(n_estimators=50, random_state=42)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
 
-    # ---------------------------
-    # 5. Model Performance
-    # ---------------------------
+    # Model Performance
     st.subheader("Model Performance")
 
     acc = accuracy_score(y_test, y_pred)
@@ -154,9 +138,7 @@ with tab2:
     with col2:
         st.pyplot(fig, use_container_width=False)
 
-    # ---------------------------
-    # 6. Prediction UI
-    # ---------------------------
+    # Prediction UI
     st.subheader("Predict Crime Type")
 
     selected_boro = st.selectbox("Select Borough", df['boro_nm'].unique())
@@ -173,21 +155,17 @@ with tab2:
         st.write("Prediction Probabilities:")
         st.bar_chart(pd.Series(probs, index=model.classes_))
 
-    # ---------------------------
-    # 7. Feature Importance
-    # ---------------------------
+    # Feature Importance
     st.subheader("Feature Importance (Explainability)")
 
     importance = pd.Series(model.feature_importances_, index=X.columns)
     st.bar_chart(importance)
 
-# =========================================================
-# 🔹 TAB 3: ANOMALY DETECTION (INTERACTIVE)
-# =========================================================
+# Tab 3: Anomaly Detection
 with tab3:
     st.title("Crime Anomaly Detection Over Time")
 
-    # --- Filters ---
+    # Filters
     st.subheader("Filters")
 
     selected_boro = st.selectbox(
@@ -200,7 +178,7 @@ with tab3:
         ["All", "Violent", "Property", "Public Order"]
     )
 
-    # --- Apply filters ---
+    # Apply filters
     filtered = df.copy()
 
     if selected_boro != "All":
@@ -220,7 +198,7 @@ with tab3:
     if crime_type != "All":
         filtered = filtered[filtered['crime_category'] == crime_type]
 
-    # --- Check if data exists ---
+    # Check if data exists
     if filtered.empty:
         st.warning("No data available for selected filters.")
     else:
@@ -231,13 +209,13 @@ with tab3:
             .reset_index(name='crime_count')
         )
 
-        # --- Run anomaly detection dynamically ---
+        # Run anomaly detection dynamically
         iso = IsolationForest(contamination=0.1, random_state=42)
         hourly_counts['anomaly'] = iso.fit_predict(hourly_counts[['crime_count']])
 
         anomalies = hourly_counts[hourly_counts['anomaly'] == -1]
 
-        # --- Visualizations ---
+        # Visualizations
         st.subheader("Crime Volume by Hour")
         st.line_chart(hourly_counts.set_index('hour')['crime_count'])
 
