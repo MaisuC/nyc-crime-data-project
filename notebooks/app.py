@@ -16,8 +16,7 @@ st.set_page_config(page_title="NYPD Crime ML Dashboard", layout="wide")
 # Load Data
 @st.cache_data
 def get_data():
-    df = pd.read_csv("nypd_clean.csv").sample(10000, random_state=42)
-
+    df = pd.read_csv("nypd_sampled.csv")
     # Extract hour
     df['hour'] = df['cmplnt_fr_tm'].str.split(':').str[0]
     df['hour'] = pd.to_numeric(df['hour'], errors='coerce')
